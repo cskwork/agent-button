@@ -2,40 +2,68 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Agent Button — Web TUI</title>
+  <title data-i18n="app_title">Agent Button — Web TUI</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script>document.documentElement.dataset.theme = localStorage.getItem("ab-theme") || "light";</script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css" />
+  <link rel="stylesheet" href="/theme.css" />
   <style>
-    html, body { margin: 0; height: 100%; background: #0c0d10; }
-    #bar {
-      display: flex; align-items: center; gap: 16px;
-      padding: 10px 18px; color: #9aa3b2;
-      font: 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      border-bottom: 1px solid #1c1f26;
+    html, body { margin: 0; height: 100%; }
+    body {
+      background: var(--bg-grad) fixed; color: var(--text);
+      font: 15px -apple-system, BlinkMacSystemFont, "Segoe UI",
+            "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
     }
-    #bar b { color: #e8ecf3; font-weight: 600; letter-spacing: 0.04em; }
-    #bar a { color: #6ab0ff; text-decoration: none; }
+    #bar {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 20px; color: var(--muted);
+      background: var(--panel);
+      -webkit-backdrop-filter: blur(var(--blur)); backdrop-filter: blur(var(--blur));
+      border-bottom: 1px solid var(--line);
+    }
+    #bar b { color: var(--text); font-weight: 600; letter-spacing: 0.04em; }
+    #bar a { color: var(--accent); text-decoration: none; }
     #status { margin-left: auto; }
-    #wrap { padding: 14px 18px; height: calc(100% - 70px); box-sizing: border-box; }
-    #terminal { height: 100%; }
+    .chip {
+      background: var(--field-bg); border: 1px solid var(--line); color: var(--muted);
+      -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+      border-radius: 999px; padding: 5px 14px; font-size: 14px; cursor: pointer;
+    }
+    .chip:hover { color: var(--accent); border-color: var(--accent); }
+    #wrap { padding: 16px 20px; height: calc(100% - 74px); box-sizing: border-box; }
+    #terminal {
+      height: 100%; padding: 12px; border-radius: 14px;
+      background: var(--panel);
+      -webkit-backdrop-filter: blur(var(--blur)); backdrop-filter: blur(var(--blur));
+      border: 1px solid var(--line); box-shadow: var(--shadow);
+    }
   </style>
 </head>
 <body>
   <div id="bar">
-    <b>AGENT BUTTON</b>
-    <span>web TUI — keys go straight to the terminal app</span>
-    <a href="/">dashboard</a>
-    <span id="status">connecting…</span>
+    <b data-i18n="header_automations">AGENT BUTTON</b>
+    <span data-i18n="tui_subtitle">web TUI — keys go straight to the terminal app</span>
+    <a href="/" data-i18n="dashboard">dashboard</a>
+    <span id="status" data-i18n="connecting">connecting…</span>
+    <button id="theme-toggle" class="chip" onclick="toggleTheme()">Dark</button>
+    <button id="lang-toggle" class="chip" onclick="toggleLang()">한국어</button>
   </div>
   <div id="wrap"><div id="terminal"></div></div>
 
+  <script src="/ui.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
   <script>
+    // Transparent terminal background lets the frosted panel + gradient show through.
+    const XTERM_THEMES = {
+      light: { background: "rgba(0,0,0,0)", foreground: "#2a2540", cursor: "#6c5ce7", selectionBackground: "rgba(108,92,231,0.25)" },
+      dark: { background: "rgba(0,0,0,0)", foreground: "#d7dde7", cursor: "#9d8bff", selectionBackground: "rgba(157,139,255,0.3)" },
+    };
     const term = new Terminal({
-      fontSize: 14,
+      fontSize: 16,
       fontFamily: "SF Mono, Menlo, Monaco, monospace",
-      theme: { background: "#0c0d10", foreground: "#d7dde7", cursor: "#6ab0ff" },
+      theme: XTERM_THEMES[currentTheme()],
+      allowTransparency: true,
       cursorBlink: false,
       scrollback: 0,
     });
@@ -46,10 +74,21 @@
 
     const cols = term.cols, rows = term.rows;
     const status = document.getElementById("status");
+    let phase = "connecting"; // connecting | connected | disconnected
+
+    function renderStatus() {
+      if (phase === "connected") status.textContent = t("tui_connected", { cols, rows });
+      else if (phase === "disconnected") status.textContent = t("tui_disconnected");
+      else status.textContent = t("connecting");
+    }
+    // Re-theme / re-translate live when the user flips a toggle.
+    window.onThemeChange = () => { term.options.theme = XTERM_THEMES[currentTheme()]; };
+    window.onLangChange = renderStatus;
+
     const ws = new WebSocket(`ws://${location.host}/ws/tui?cols=${cols}&rows=${rows}`);
-    ws.onopen = () => { status.textContent = `connected ${cols}x${rows}`; term.focus(); };
+    ws.onopen = () => { phase = "connected"; renderStatus(); term.focus(); };
     ws.onmessage = (e) => term.write(e.data);
-    ws.onclose = () => { status.textContent = "disconnected — reload to reconnect"; };
+    ws.onclose = () => { phase = "disconnected"; renderStatus(); };
     term.onData((data) => { if (ws.readyState === 1) ws.send(data); });
   </script>
 </body>

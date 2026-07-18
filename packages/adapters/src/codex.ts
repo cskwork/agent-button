@@ -44,7 +44,11 @@ export class CodexAdapter implements AgentAdapter {
     let prompt = request.prompt;
     if (request.resultSchema) prompt += schemaInstruction(request.resultSchema);
 
-    const args = ["exec", "--json"];
+    // Automations run in arbitrary working folders that are usually not git
+    // repos; without this codex exits 1 ("Not inside a trusted directory").
+    // Sandbox and network policy come from the user's codex config, not forced
+    // here, so a deliberate read-only setup is respected.
+    const args = ["exec", "--json", "--skip-git-repo-check"];
     if (request.model && request.model !== "default") args.push("-m", request.model);
     args.push(prompt);
 

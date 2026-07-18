@@ -2,116 +2,158 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Agent Button — Automations</title>
+  <title data-i18n="app_title">Agent Button — Automations</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Apply saved theme before paint to avoid a flash. -->
+  <script>document.documentElement.dataset.theme = localStorage.getItem("ab-theme") || "light";</script>
+  <link rel="stylesheet" href="/theme.css" />
   <style>
-    :root {
-      --bg: #0c0d10; --panel: #12141a; --line: #1c1f26;
-      --text: #e8ecf3; --muted: #9aa3b2; --accent: #6ab0ff;
-      --ok: #4ade80; --bad: #f87171; --warn: #fbbf24;
-    }
     * { box-sizing: border-box; }
     body {
-      margin: 0; background: var(--bg); color: var(--text);
-      font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0; min-height: 100vh; position: relative;
+      background: var(--bg-grad) fixed; color: var(--text);
+      font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI",
+            "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
     }
-    header { display: flex; align-items: baseline; gap: 16px; padding: 22px 32px 10px; }
-    header h1 { font-size: 15px; letter-spacing: 0.08em; margin: 0; }
-    header a { color: var(--accent); text-decoration: none; font-size: 13px; }
-    #daemon { margin-left: auto; color: var(--muted); font-size: 13px; }
+    /* Soft floating colour blobs behind the frosted glass. */
+    body::before, body::after {
+      content: ""; position: fixed; z-index: -1; border-radius: 50%;
+      filter: blur(70px); pointer-events: none;
+    }
+    body::before { width: 460px; height: 460px; top: -120px; left: -80px; background: var(--bg-blob-a); }
+    body::after { width: 520px; height: 520px; bottom: -160px; right: -100px; background: var(--bg-blob-b); }
+
+    .glass {
+      background: var(--panel);
+      -webkit-backdrop-filter: blur(var(--blur)); backdrop-filter: blur(var(--blur));
+      border: 1px solid var(--line); box-shadow: var(--shadow);
+    }
+
+    header { display: flex; align-items: center; gap: 14px; padding: 20px 32px 12px; }
+    header h1 { font-size: 18px; letter-spacing: 0.08em; margin: 0; }
+    header a { color: var(--accent); text-decoration: none; font-size: 15px; }
+    #daemon { margin-left: auto; color: var(--muted); font-size: 14px; }
+    .chip {
+      background: var(--field-bg); border: 1px solid var(--line); color: var(--muted);
+      -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+      border-radius: 999px; padding: 5px 14px; font-size: 14px; cursor: pointer;
+      transition: color .15s, border-color .15s;
+    }
+    .chip:hover { color: var(--accent); border-color: var(--accent); }
     main { padding: 8px 32px 40px; max-width: 1100px; }
-    h2 { font-size: 12px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; margin: 28px 0 12px; }
-    #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
-    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
-    .card b { font-size: 14px; }
-    .card .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
-    .card .actions { margin-top: 10px; display: flex; gap: 8px; }
-    .card.add { border-style: dashed; color: var(--muted); display: flex; align-items: center; justify-content: center; cursor: pointer; min-height: 92px; }
+    h2 { font-size: 13px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; margin: 28px 0 12px; }
+    #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+    .card {
+      background: var(--panel);
+      -webkit-backdrop-filter: blur(var(--blur)); backdrop-filter: blur(var(--blur));
+      border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; box-shadow: var(--shadow);
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .card:hover { transform: translateY(-2px); }
+    .card b { font-size: 16px; }
+    .card .sub { color: var(--muted); font-size: 13px; margin-top: 3px; }
+    .card .actions { margin-top: 12px; display: flex; gap: 8px; }
+    .card.add {
+      border-style: dashed; color: var(--muted); display: flex; align-items: center;
+      justify-content: center; cursor: pointer; min-height: 96px; font-size: 15px;
+    }
     .card.add:hover { color: var(--accent); border-color: var(--accent); }
     button {
-      background: transparent; border: 1px solid var(--line); color: var(--text);
-      border-radius: 7px; padding: 4px 12px; font-size: 12px; cursor: pointer;
+      background: var(--field-bg); border: 1px solid var(--line); color: var(--text);
+      -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+      border-radius: 9px; padding: 6px 14px; font-size: 14px; cursor: pointer;
+      transition: transform .08s ease, border-color .15s, color .15s;
     }
-    button:hover { border-color: var(--accent); color: var(--accent); }
+    button:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
     button.primary { border-color: var(--accent); color: var(--accent); }
     button.danger { border-color: var(--bad); color: var(--bad); }
-    button.ghost { border: none; color: var(--muted); padding: 4px 6px; }
-    .run-row { display: flex; gap: 12px; align-items: center; padding: 7px 10px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+    button.ghost { border: none; background: transparent; color: var(--muted); padding: 6px 8px; }
+    .run-row { display: flex; gap: 12px; align-items: center; padding: 8px 12px; border-radius: 10px; cursor: pointer; font-size: 15px; }
     .run-row:hover { background: var(--panel); }
-    .run-row .glyph { width: 14px; text-align: center; }
-    .run-row .label { width: 220px; }
-    .run-row .status { width: 130px; color: var(--muted); }
+    .run-row .glyph { width: 16px; text-align: center; }
+    .run-row .label { width: 240px; }
+    .run-row .status { width: 140px; color: var(--muted); }
     .run-row .when { color: var(--muted); }
     .ok { color: var(--ok); } .bad { color: var(--bad); } .warn { color: var(--warn); } .accent { color: var(--accent); }
 
     #detail {
-      position: fixed; inset: 0 0 0 auto; width: min(680px, 90vw);
-      background: var(--panel); border-left: 1px solid var(--line);
-      padding: 24px 28px; overflow-y: auto; display: none;
+      position: fixed; inset: 0 0 0 auto; width: min(680px, 92vw);
+      background: var(--panel-strong);
+      -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px);
+      border-left: 1px solid var(--line); box-shadow: var(--shadow);
+      padding: 26px 30px; overflow-y: auto; display: none;
     }
     #detail.show { display: block; }
     #detail pre {
-      background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
-      padding: 14px; font: 12px/1.6 "SF Mono", Menlo, monospace;
+      background: var(--field-bg); border: 1px solid var(--line); border-radius: 10px;
+      padding: 14px; font: 13.5px/1.6 "SF Mono", Menlo, monospace;
       white-space: pre-wrap; word-break: break-word; max-height: 60vh; overflow-y: auto;
     }
-    .approval { border: 1px solid var(--warn); border-radius: 8px; padding: 12px 14px; margin: 12px 0; }
-    .approval table { font-size: 12px; color: var(--muted); margin: 8px 0; }
+    .approval { border: 1px solid var(--warn); border-radius: 10px; padding: 12px 14px; margin: 12px 0; }
+    .approval table { font-size: 13px; color: var(--muted); margin: 8px 0; }
     .approval td:first-child { padding-right: 14px; color: var(--text); }
 
     .overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      position: fixed; inset: 0; background: rgba(20, 16, 40, 0.42);
+      -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
       display: none; align-items: flex-start; justify-content: center;
       overflow-y: auto; padding: 5vh 0; z-index: 10;
     }
     .overlay.show { display: flex; }
     .overlay .box {
-      background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
-      width: min(720px, 92vw); padding: 22px 26px; margin-bottom: 5vh;
+      background: var(--panel-strong);
+      -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px);
+      border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow);
+      width: min(720px, 92vw); padding: 24px 28px; margin-bottom: 5vh;
     }
-    .box h3 { margin: 0 0 4px; font-size: 16px; }
-    .box .hint { color: var(--muted); font-size: 12px; margin: 0 0 14px; }
+    .box h3 { margin: 0 0 4px; font-size: 19px; }
+    .box .hint { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
     .field { margin: 12px 0; }
-    .field > label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+    .field > label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 5px; }
     .field input[type="text"], .field input[type="number"], .field input[type="time"],
     .field select, .field textarea {
-      width: 100%; background: var(--bg); color: var(--text);
-      border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
-      font: 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      width: 100%; background: var(--field-bg); color: var(--text);
+      border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px;
+      font: 15px -apple-system, BlinkMacSystemFont, "Segoe UI",
+            "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
     }
-    .field textarea { min-height: 130px; font: 13px/1.6 "SF Mono", Menlo, monospace; resize: vertical; }
+    .field textarea { min-height: 130px; font: 14px/1.6 "SF Mono", Menlo, monospace; resize: vertical; }
     .field-row { display: flex; gap: 12px; }
     .field-row .field { flex: 1; }
     .q-row { display: grid; grid-template-columns: 1.4fr 0.9fr 1.2fr 0.9fr auto auto; gap: 8px; align-items: center; margin: 6px 0; }
-    .q-row input, .q-row select { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px; font-size: 12px; }
-    .q-head { display: grid; grid-template-columns: 1.4fr 0.9fr 1.2fr 0.9fr auto auto; gap: 8px; font-size: 11px; color: var(--muted); margin-top: 6px; }
+    .q-row input, .q-row select { width: 100%; background: var(--field-bg); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; font-size: 13px; }
+    .q-head { display: grid; grid-template-columns: 1.4fr 0.9fr 1.2fr 0.9fr auto auto; gap: 8px; font-size: 12px; color: var(--muted); margin-top: 6px; }
     .days { display: flex; gap: 6px; flex-wrap: wrap; }
-    .days label { border: 1px solid var(--line); border-radius: 6px; padding: 3px 9px; font-size: 12px; cursor: pointer; color: var(--muted); }
+    .days label { border: 1px solid var(--line); border-radius: 7px; padding: 4px 10px; font-size: 13px; cursor: pointer; color: var(--muted); }
     .days input { display: none; }
     .days label:has(input:checked) { border-color: var(--accent); color: var(--accent); }
     .box .footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
-    .box .footer .err { color: var(--bad); font-size: 12px; margin-right: auto; white-space: pre-wrap; align-self: center; }
+    .box .footer .err { color: var(--bad); font-size: 13px; margin-right: auto; white-space: pre-wrap; align-self: center; }
     #editor textarea {
-      width: 100%; height: 46vh; background: var(--bg); color: var(--text);
-      border: 1px solid var(--line); border-radius: 8px; padding: 12px;
-      font: 12px/1.6 "SF Mono", Menlo, monospace; resize: vertical;
+      width: 100%; height: 46vh; background: var(--field-bg); color: var(--text);
+      border: 1px solid var(--line); border-radius: 10px; padding: 12px;
+      font: 14px/1.6 "SF Mono", Menlo, monospace; resize: vertical;
     }
     #toast {
-      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-      background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
-      padding: 8px 18px; font-size: 13px; display: none; z-index: 20;
+      position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+      background: var(--panel-strong);
+      -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+      border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow);
+      padding: 10px 20px; font-size: 15px; display: none; z-index: 20;
     }
   </style>
 </head>
 <body>
   <header>
-    <h1>AUTOMATIONS</h1>
-    <a href="/term.html">open web TUI</a>
-    <span id="daemon">connecting…</span>
+    <h1 data-i18n="header_automations">AUTOMATIONS</h1>
+    <a href="/term.html" data-i18n="open_web_tui">open web TUI</a>
+    <span id="daemon" data-i18n="connecting">connecting…</span>
+    <button id="theme-toggle" class="chip" onclick="toggleTheme()">Dark</button>
+    <button id="lang-toggle" class="chip" onclick="toggleLang()">한국어</button>
   </header>
   <main>
     <div id="grid"></div>
-    <h2>Recent runs</h2>
+    <h2 data-i18n="recent_runs">Recent runs</h2>
     <div id="runs"></div>
   </main>
 
@@ -127,17 +169,18 @@
   <!-- Advanced editor (developers only, hidden behind a toggle) -->
   <div id="editor" class="overlay">
     <div class="box">
-      <h3 id="editor-title">Advanced editor</h3>
-      <p class="hint">Raw definition (YAML or JSON). Saved to <code>~/.agent-button/buttons/&lt;id&gt;.yaml</code>.</p>
+      <h3 id="editor-title" data-i18n="adv_editor_title">Advanced editor</h3>
+      <p class="hint"><span data-i18n="adv_editor_hint">Raw definition (YAML or JSON).</span> Saved to <code>~/.agent-button/buttons/&lt;id&gt;.yaml</code>.</p>
       <textarea id="editor-text" spellcheck="false"></textarea>
       <div class="footer">
         <span class="err" id="editor-err"></span>
-        <button onclick="closeEditor()">Cancel</button>
-        <button class="primary" onclick="saveButtonYaml()">Save</button>
+        <button onclick="closeEditor()" data-i18n="cancel">Cancel</button>
+        <button class="primary" onclick="saveButtonYaml()" data-i18n="save">Save</button>
       </div>
     </div>
   </div>
 
+  <script src="/ui.js"></script>
   <script src="/app.js"></script>
   <script src="/builder.js"></script>
 </body>

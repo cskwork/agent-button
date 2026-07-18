@@ -58,4 +58,35 @@ describe("streamProcess", () => {
     expect(lines).toEqual(["a", "b", "c"]);
     expect(await proc.exitCode()).toBe(0);
   });
+
+  // Regression: a missing working folder used to surface as "Premature close"
+  // from the destroyed stdout stream. It must now fail with a clear message.
+  test("reports a missing working folder clearly, not 'Premature close'", async () => {
+    let message = "";
+    try {
+      const proc = streamProcess({
+        executable: "echo",
+        args: ["hi"],
+        cwd: "/no/such/folder/agent-button-test",
+        minimalEnv: false,
+      });
+      for await (const _ of proc.lines) { /* drain */ }
+    } catch (err) {
+      message = err instanceof Error ? err.message : String(err);
+    }
+    expect(message).toContain("Working folder does not exist");
+    expect(message).not.toContain("Premature close");
+  });
+});
+
+describe("runProcess", () => {
+  test("rejects with a clear message when the working folder is missing", async () => {
+    let message = "";
+    try {
+      await runProcess({ executable: "echo", args: ["hi"], cwd: "/no/such/folder/agent-button-test", minimalEnv: false });
+    } catch (err) {
+      message = err instanceof Error ? err.message : String(err);
+    }
+    expect(message).toContain("Working folder does not exist");
+  });
 });

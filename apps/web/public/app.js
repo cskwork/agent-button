@@ -31,12 +31,14 @@ const GLYPHS = {
   running: ["●", "accent"], waiting_approval: ["◐", "warn"], queued: ["○", ""], interrupted: ["!", ""],
 };
 
+const statusLabel = (s) => t("status_" + s);
+
 function relTime(iso) {
   const d = Date.now() - Date.parse(iso);
-  if (d < 60e3) return "just now";
-  if (d < 3600e3) return Math.round(d / 60e3) + "m ago";
-  if (d < 86400e3) return Math.round(d / 3600e3) + "h ago";
-  return Math.round(d / 86400e3) + "d ago";
+  if (d < 60e3) return t("just_now");
+  if (d < 3600e3) return t("min_ago", { n: Math.round(d / 60e3) });
+  if (d < 86400e3) return t("hour_ago", { n: Math.round(d / 3600e3) });
+  return t("day_ago", { n: Math.round(d / 86400e3) });
 }
 
 function inputDecls(btn) {
@@ -56,7 +58,7 @@ async function runButton(btn, dryRun) {
   try {
     const { run } = await api("/runs", { body: { buttonId: btn.id, inputs, dryRun } });
     state.openRun = run.id;
-    toast((dryRun ? "Preview" : "Run") + " started: " + btn.label);
+    toast(t(dryRun ? "preview_started" : "run_started", { label: btn.label }));
     refresh();
   } catch (err) { toast(String(err.message || err)); }
 }
@@ -69,13 +71,13 @@ function renderButtons() {
     const el = document.createElement("div");
     el.className = "card";
     const digit = i < 9 ? `[${i + 1}] ` : i === 9 ? "[0] " : "";
-    const kind = btn.kind === "workflow" ? `workflow · ${btn.risk || ""}` : (btn.agent?.adapter || "agent");
-    const sched = btn.schedule?.next_run_at ? ` · next ${relTime(btn.schedule.next_run_at).replace(" ago", "")}` : "";
+    const kind = btn.kind === "workflow" ? `${t("workflow")} · ${btn.risk || ""}` : (btn.agent?.adapter || "agent");
+    const sched = btn.schedule?.next_run_at ? ` · ${t("next")} ${relTime(btn.schedule.next_run_at).replace(/ ago$| 전$/, "")}` : "";
     el.innerHTML = `<b>${digit}${btn.label}</b><div class="sub">${kind}${sched}</div>
       <div class="actions">
-        <button class="primary">Run</button>
-        <button title="Show what would happen, without doing it">Preview</button>
-        <button class="ghost">Edit</button>
+        <button class="primary">${t("run")}</button>
+        <button title="${t("preview_title")}">${t("preview")}</button>
+        <button class="ghost">${t("edit")}</button>
       </div>`;
     const [runBtn, dryBtn, editBtn] = el.querySelectorAll("button");
     runBtn.onclick = () => runButton(btn, false);
@@ -85,7 +87,7 @@ function renderButtons() {
   });
   const add = document.createElement("div");
   add.className = "card add";
-  add.textContent = "+ New automation";
+  add.textContent = t("new_automation");
   add.onclick = () => openBuilder(null);
   $("grid").appendChild(add);
 }
@@ -97,8 +99,8 @@ function renderRuns() {
     const el = document.createElement("div");
     el.className = "run-row";
     el.innerHTML = `<span class="glyph ${cls}">${glyph}</span>
-      <span class="label">${run.buttonLabel}${run.dryRun ? " <span class='accent'>[preview]</span>" : ""}</span>
-      <span class="status">${run.status === "waiting_approval" ? "needs approval" : run.status}</span>
+      <span class="label">${run.buttonLabel}${run.dryRun ? ` <span class='accent'>${t("preview_tag")}</span>` : ""}</span>
+      <span class="status">${statusLabel(run.status)}</span>
       <span class="when">${relTime(run.startedAt)}</span>`;
     el.onclick = () => { state.openRun = run.id; renderDetail(); };
     $("runs").appendChild(el);
@@ -135,32 +137,32 @@ async function renderDetail() {
   const approvalsHtml = data.approvals.map((a) => `
     <div class="approval"><b>${a.request.title}</b>
       <table>${Object.entries(a.request.fields).map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("")}</table>
-      <button class="primary" onclick="decide('${a.request.id}','approved')">Approve</button>
-      <button class="danger" onclick="decide('${a.request.id}','rejected')">Reject</button>
+      <button class="primary" onclick="decide('${a.request.id}','approved')">${t("approve")}</button>
+      <button class="danger" onclick="decide('${a.request.id}','rejected')">${t("reject")}</button>
     </div>`).join("");
-  const artifacts = (run.artifacts || []).map((a) => `<div class="sub">artifact: ${a.path}</div>`).join("");
+  const artifacts = (run.artifacts || []).map((a) => `<div class="sub">${t("artifact")} ${a.path}</div>`).join("");
   const active = ["running", "waiting_approval", "queued"].includes(run.status);
   panel.innerHTML = `
     <div style="display:flex;gap:12px;align-items:baseline">
       <b style="font-size:16px">${run.buttonLabel}</b>
-      <span class="${(GLYPHS[run.status] || [])[1] || ''}">${run.status}</span>
+      <span class="${(GLYPHS[run.status] || [])[1] || ''}">${statusLabel(run.status)}</span>
       <span style="margin-left:auto"></span>
-      ${active ? `<button class="danger" onclick="cancelRun('${run.id}')">Cancel</button>` : ""}
-      <button onclick="state.openRun=null;renderDetail()">Close</button>
+      ${active ? `<button class="danger" onclick="cancelRun('${run.id}')">${t("cancel")}</button>` : ""}
+      <button onclick="state.openRun=null;renderDetail()">${t("close")}</button>
     </div>
     <div class="sub">${run.id}</div>
     ${approvalsHtml}
-    <pre>${lines || "(no events yet)"}</pre>
+    <pre>${lines || t("no_events")}</pre>
     ${artifacts}`;
   panel.classList.add("show");
 }
 
 window.decide = async (id, decision) => {
-  try { await api(`/approvals/${id}`, { body: { decision } }); toast(decision); refresh(); }
+  try { await api(`/approvals/${id}`, { body: { decision } }); toast(t("decided_" + decision)); refresh(); }
   catch (err) { toast(String(err.message || err)); }
 };
 window.cancelRun = async (id) => {
-  try { await api(`/runs/${id}/cancel`, { body: {} }); toast("cancel requested"); refresh(); }
+  try { await api(`/runs/${id}/cancel`, { body: {} }); toast(t("cancel_requested")); refresh(); }
   catch (err) { toast(String(err.message || err)); }
 };
 
@@ -171,7 +173,7 @@ async function refresh() {
   try {
     const [b, r, a] = await Promise.all([api("/buttons"), api("/runs?limit=12"), api("/approvals")]);
     state.buttons = b.buttons; state.runs = r.runs; state.approvals = a.approvals;
-    $("daemon").textContent = "daemon ready" + (a.approvals.length ? ` · ${a.approvals.length} approval(s) pending` : "");
+    $("daemon").textContent = t("daemon_ready") + (a.approvals.length ? " " + t("approvals_pending", { n: a.approvals.length }) : "");
     renderButtons(); renderRuns();
     if (state.openRun) renderDetail();
     if (!adaptersLoaded) {
@@ -179,7 +181,7 @@ async function refresh() {
       api("/adapters").then((d) => { state.adapters = d.adapters; }).catch(() => { adaptersLoaded = false; });
     }
   } catch {
-    $("daemon").textContent = "daemon offline — run: bun run daemon";
+    $("daemon").textContent = t("daemon_offline");
   }
 }
 

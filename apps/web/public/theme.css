@@ -1,0 +1,37 @@
+/* Shared design tokens: light (default) + dark, playful glassmorphism.
+   data-theme lives on <html>; ui.js flips it. Both pages link this file. */
+:root {
+  --bg-grad: linear-gradient(135deg, #eaf0ff 0%, #f4ecff 45%, #ffedf5 100%);
+  --bg-blob-a: rgba(124, 108, 255, 0.28);
+  --bg-blob-b: rgba(255, 138, 190, 0.26);
+  --panel: rgba(255, 255, 255, 0.55);
+  --panel-strong: rgba(255, 255, 255, 0.74);
+  --field-bg: rgba(255, 255, 255, 0.6);
+  --line: rgba(84, 80, 140, 0.16);
+  --text: #262a44;
+  --muted: #6b7192;
+  --accent: #6c5ce7;
+  --ok: #10b981;
+  --bad: #ef5675;
+  --warn: #e6890f;
+  --shadow: 0 8px 30px rgba(90, 80, 160, 0.14);
+  --blur: 14px;
+}
+
+[data-theme="dark"] {
+  --bg-grad: linear-gradient(135deg, #12111d 0%, #171528 50%, #1b1330 100%);
+  --bg-blob-a: rgba(124, 108, 255, 0.22);
+  --bg-blob-b: rgba(255, 111, 168, 0.18);
+  --panel: rgba(32, 32, 50, 0.55);
+  --panel-strong: rgba(40, 40, 62, 0.8);
+  --field-bg: rgba(20, 20, 32, 0.5);
+  --line: rgba(255, 255, 255, 0.1);
+  --text: #e9ecf5;
+  --muted: #9aa3b2;
+  --accent: #9d8bff;
+  --ok: #4ade80;
+  --bad: #f87171;
+  --warn: #fbbf24;
+  --shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
+  --blur: 16px;
+}

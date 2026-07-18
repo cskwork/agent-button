@@ -91,3 +91,123 @@ OS-level filesystem/network sandbox enforcement, approval timeouts, RRULE
 schedules, resume of interrupted runs, Jira ACLI deterministic step (weekly
 report currently instructs the agent to call `acli` itself), marketplace/
 cloud/multi-user (explicitly out of MVP scope).
+
+---
+
+## Web UI: larger type, EN/KO i18n, light/dark glassmorphism
+
+Reworked the web surface (`apps/web/public/`) per user request: bigger overall
+text, English default with a Korean toggle, and a light-default glassmorphism
+theme with a dark switch.
+
+**Shared token + prefs layer, not per-page duplication.** Added `theme.css`
+(design tokens: light default + dark under `[data-theme="dark"]`) and `ui.js`
+(theme + language prefs, `t()` translator, static `[data-i18n]` application,
+toggle controls). Both `index.html` and `term.html` link them, so the two
+pages stay in sync and prefs (localStorage `ab-theme` / `ab-lang`) persist
+across them. Rejected: inlining tokens/strings in each page (drift), a build
+step or i18n library (this app ships static files with no bundler — a ~60-line
+plain-JS dictionary is lighter and matches the existing no-dependency style).
+
+**Font sizes bumped directly, not via a root rem refactor.** The existing CSS
+uses absolute px inside `font:` shorthands; converting everything to rem would
+be a large, error-prone diff. Bumped base 14→16px and scaled the rest
+proportionally. xterm terminal 14→16px.
+
+**Glassmorphism via translucent panels + backdrop-filter.** Light default uses
+a soft pastel gradient with blurred colour blobs behind frosted panels
+(`rgba` bg + `backdrop-filter: blur`). The web TUI terminal runs
+`allowTransparency: true` with a transparent xterm background so the frosted
+panel shows through; foreground colour follows the active theme. A pre-paint
+inline script sets `data-theme` from localStorage to avoid a flash.
+
+**No emojis in toggles** (repo rule): theme toggle shows the target mode word
+("Dark"/"Light", translated); language toggle shows the other language's native
+name ("한국어"/"English").
+
+**Korean font stack.** Added "Apple SD Gothic Neo", "Malgun Gothic",
+"Noto Sans KR" to the sans stacks so Korean renders cleanly cross-platform.
+
+**Language switch re-renders dynamic content.** `ui.js` retranslates static
+markup and calls `window.onLangChange`; the dashboard hook re-runs `refresh()`
+and re-renders an open builder form. The web TUI hook re-renders its status
+line.
+
+**Deliberate boundary:** the run-detail event log (`formatEvent` in `app.js`)
+is left English. It interleaves raw agent output (untranslatable) with technical
+markers (step IDs, error codes), so translating it is low value; easy to extend
+later if wanted.
+
+Verified: `node --check` on all three JS files; static server serves
+`/theme.css` `/ui.js` and both pages with 200 + correct content-types; a
+DOM-stub smoke test confirmed default EN/light, `t()` EN/KO with `{param}`
+substitution, missing-key fallback, and localStorage persistence on toggle.
+No browser driver installed, so no headless render test was run.
+
+---
+
+## Fix: opaque "Premature close" on a missing working folder
+
+**Symptom.** Running the "Write Blog" button (codex adapter, `cwd:
+~/Documents/blog`) failed with `Run failed: Premature close`.
+
+**Root cause.** `~/Documents/blog` did not exist. `spawn` reports a missing
+`cwd` via an async `error` event (ENOENT) that tears down the child's stdout.
+In `streamProcess`, the `error` event was swallowed (`exitPromise` resolved
+null) and the `for await` over the destroyed stdout stream threw Node's
+`ERR_STREAM_PREMATURE_CLOSE` ("Premature close"), which propagated up as the
+run's failure message — accurate to Node, useless to a user.
+
+**Fix (packages/process-runner/src/index.ts).**
+- `assertCwd()` validates the working folder exists and is a directory before
+  spawn, in both `runProcess` and `streamProcess`, throwing a `STEP_FAILED`
+  with an actionable message ("Working folder does not exist: <path>. Create
+  it, or change the automation's working folder.").
+- `streamProcess` now captures the child `error` event and wraps the stdout
+  `for await` so any other premature close (missing binary, EACCES) surfaces
+  the real cause plus captured stderr, instead of "Premature close".
+  Cancellation/timeout still fall through to `wasCancelled()`/`wasTimedOut()`.
+
+Rejected: silently creating the folder inside the runner (a run should not
+invent filesystem state the user didn't ask for — fail clearly instead).
+
+Also created `~/Documents/blog` so the existing button runs, and restart of the
+daemon (`bun run daemon`) picks up the clearer error path.
+
+Tests: added two regression cases (streamProcess + runProcess with a missing
+cwd assert the clear message and the absence of "Premature close"). Full suite
+38 pass, `tsc --noEmit` clean.
+
+---
+
+## Fix: codex adapter exits 1 outside a git repo
+
+**Symptom.** After the working folder existed, "Write Blog" (codex adapter)
+failed: `codex exited 1: ... Not inside a trusted directory and
+--skip-git-repo-check was not specified.`
+
+**Root cause.** `codex exec` refuses to run outside a trusted (git) directory
+unless `--skip-git-repo-check` is passed. Automations target arbitrary user
+folders (`~/Documents/blog`), most not git repos, so the adapter's `codex exec
+--json` invocation was rejected before reaching the model.
+
+**Fix (packages/adapters/src/codex.ts).** Added `--skip-git-repo-check` to the
+`codex exec` args. Sandbox and network policy are deliberately NOT forced by the
+adapter — they come from the user's `~/.codex/config.toml` (here already
+`sandbox_mode = "workspace-write"` with `network_access = true`), so a user's
+read-only choice is respected rather than overridden.
+
+**QA (real runs, ChatGPT-authed codex).**
+1. `codex exec --json --skip-git-repo-check -s workspace-write -C ~/Documents/blog`
+   with a trivial write prompt → `turn.completed`, file created.
+2. Same without explicit `-s` (mirrors the adapter, relying on config default)
+   → `turn.completed`, file created — confirming `--skip-git-repo-check` alone
+   is sufficient given the user's config.
+3. End-to-end through the actual `CodexAdapter.start()` (the changed code) in
+   `~/Documents/blog` → emitted `tool.completed(file_change)` then
+   `run.completed`, `failed: null`. File written and verified.
+
+Full suite 38 pass, `tsc --noEmit` clean.
+
+Note: the running daemon must be restarted (`bun run daemon`) to load the updated
+adapter before the button succeeds in the app.

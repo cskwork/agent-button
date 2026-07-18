@@ -1,5 +1,21 @@
 import { spawn, type ChildProcess } from "node:child_process";
+import { existsSync, statSync } from "node:fs";
 import { AbtnError } from "@abtn/core";
+
+/**
+ * Fail fast with an actionable message when the working folder is missing.
+ * Without this, spawn's async ENOENT tears down stdout and the streaming
+ * reader surfaces an opaque "Premature close" instead.
+ */
+function assertCwd(cwd?: string): void {
+  if (cwd === undefined) return;
+  if (!existsSync(cwd)) {
+    throw new AbtnError("STEP_FAILED", `Working folder does not exist: ${cwd}. Create it, or change the automation's working folder.`);
+  }
+  if (!statSync(cwd).isDirectory()) {
+    throw new AbtnError("STEP_FAILED", `Working folder is not a directory: ${cwd}.`);
+  }
+}
 
 export interface RunProcessOptions {
   executable: string;
@@ -63,6 +79,12 @@ export function runProcess(opts: RunProcessOptions): Promise<ProcessResult> {
   const maxBytes = opts.maxOutputBytes ?? DEFAULT_MAX_OUTPUT;
 
   return new Promise((resolve, reject) => {
+    try {
+      assertCwd(opts.cwd);
+    } catch (err) {
+      reject(err);
+      return;
+    }
     const env = opts.minimalEnv === false
       ? { ...process.env as Record<string, string>, ...opts.env }
       : { ...baseEnv(), ...opts.env };
@@ -171,6 +193,8 @@ export interface StreamingProcess {
 }
 
 export function streamProcess(opts: RunProcessOptions): StreamingProcess {
+  assertCwd(opts.cwd);
+
   const env = opts.minimalEnv === false
     ? { ...process.env as Record<string, string>, ...opts.env }
     : { ...baseEnv(), ...opts.env };
@@ -186,6 +210,10 @@ export function streamProcess(opts: RunProcessOptions): StreamingProcess {
   let stderr = "";
   let cancelled = false;
   let timedOut = false;
+  // Captured so the line reader can report a real cause instead of the opaque
+  // "Premature close" the destroyed stdout stream would otherwise throw.
+  let spawnError: Error | null = null;
+  child.on("error", (err) => { spawnError = err; });
 
   child.stderr?.setEncoding("utf8");
   child.stderr?.on("data", (chunk: string) => {
@@ -227,14 +255,26 @@ export function streamProcess(opts: RunProcessOptions): StreamingProcess {
     const stdout = child.stdout;
     if (!stdout) return;
     stdout.setEncoding("utf8");
-    for await (const chunk of stdout) {
-      buffer += chunk as string;
-      let idx: number;
-      while ((idx = buffer.indexOf("\n")) >= 0) {
-        const line = buffer.slice(0, idx);
-        buffer = buffer.slice(idx + 1);
-        if (line.trim().length > 0) yield line;
+    try {
+      for await (const chunk of stdout) {
+        buffer += chunk as string;
+        let idx: number;
+        while ((idx = buffer.indexOf("\n")) >= 0) {
+          const line = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 1);
+          if (line.trim().length > 0) yield line;
+        }
       }
+    } catch (err) {
+      // Cancellation/timeout tears the stream down too; let the adapter's
+      // wasCancelled()/wasTimedOut() checks report those cleanly instead.
+      if (cancelled || timedOut) return;
+      if (spawnError) {
+        throw new AbtnError("STEP_FAILED", `Could not start ${opts.executable}: ${spawnError.message}`);
+      }
+      const detail = err instanceof Error ? err.message : String(err);
+      const hint = stderr.trim() ? ` ${stderr.trim().slice(0, 300)}` : "";
+      throw new AbtnError("STEP_FAILED", `${opts.executable} output ended unexpectedly: ${detail}.${hint}`);
     }
     if (buffer.trim().length > 0) yield buffer;
   }
