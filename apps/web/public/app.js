@@ -33,6 +33,15 @@ const GLYPHS = {
 
 const statusLabel = (s) => t("status_" + s);
 
+// "codex · gpt-5.6-sol · reasoning: high" — only fields the daemon actually
+// resolved (button or native config); unknown fields are simply absent.
+function agentInfoLine(run) {
+  const a = run.agent;
+  if (!a) return "";
+  const parts = [a.adapter, a.model, a.reasoning ? `${t("reasoning")}: ${a.reasoning}` : null].filter(Boolean);
+  return `<div class="sub">${parts.join(" · ")}</div>`;
+}
+
 function relTime(iso) {
   const d = Date.now() - Date.parse(iso);
   if (d < 60e3) return t("just_now");
@@ -151,6 +160,7 @@ async function renderDetail() {
       <button onclick="state.openRun=null;renderDetail()">${t("close")}</button>
     </div>
     <div class="sub">${run.id}</div>
+    ${agentInfoLine(run)}
     ${approvalsHtml}
     <pre>${lines || t("no_events")}</pre>
     ${artifacts}`;

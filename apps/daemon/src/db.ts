@@ -45,13 +45,18 @@ export class DaemonDb {
         last_run_id TEXT
       );
     `);
+    // Additive migration: agent snapshot (adapter/model/reasoning) per run.
+    const runCols = this.db.query("PRAGMA table_info(runs)").all() as { name: string }[];
+    if (!runCols.some((c) => c.name === "agent")) {
+      this.db.exec("ALTER TABLE runs ADD COLUMN agent TEXT");
+    }
   }
 
   insertRun(run: RunRecord): void {
     this.db
       .query(
-        `INSERT INTO runs (id, button_id, button_label, kind, status, inputs, started_at, trigger_kind, dry_run)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO runs (id, button_id, button_label, kind, status, inputs, started_at, trigger_kind, dry_run, agent)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         run.id,
@@ -63,7 +68,13 @@ export class DaemonDb {
         run.startedAt,
         run.trigger,
         run.dryRun ? 1 : 0,
+        run.agent ? JSON.stringify(run.agent) : null,
       );
+  }
+
+  /** Runtime told us the model actually in use (e.g. claude init event). */
+  updateRunAgent(id: string, agent: RunRecord["agent"]): void {
+    this.db.query("UPDATE runs SET agent = ? WHERE id = ?").run(agent ? JSON.stringify(agent) : null, id);
   }
 
   updateRunStatus(id: string, status: RunStatus, error?: SerializedError, artifacts?: Artifact[]): void {
@@ -181,6 +192,7 @@ interface RunRow {
   artifacts: string;
   trigger_kind: string;
   dry_run: number;
+  agent: string | null;
 }
 
 export interface ScheduleRow {
@@ -205,5 +217,6 @@ function rowToRun(row: RunRow): RunRecord {
     artifacts: JSON.parse(row.artifacts),
     trigger: row.trigger_kind as RunRecord["trigger"],
     dryRun: row.dry_run === 1,
+    agent: row.agent ? JSON.parse(row.agent) : undefined,
   };
 }

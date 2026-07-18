@@ -20,6 +20,7 @@ import type { ApprovalRegistry } from "./approvals.ts";
 import type { SecretBroker } from "./secrets.ts";
 import { collectArtifacts, missingRequiredArtifacts } from "./artifacts.ts";
 import { resolveInputs } from "./inputs.ts";
+import { resolveAgentInfo } from "./agent-info.ts";
 
 export interface StartRunOptions {
   trigger: RunRecord["trigger"];
@@ -142,10 +143,23 @@ export class RunManager {
       artifacts: [],
       trigger: opts.trigger,
       dryRun: opts.dryRun,
+      agent: resolveAgentInfo(button),
     };
   }
 
   private emit(runId: string, event: RunStreamEvent): void {
+    // Runtime ground truth (e.g. claude's init event) overrides the config
+    // default snapshot; agent-button runs only — workflows have no single agent.
+    if (event.type === "agent.info") {
+      const run = this.db.getRun(runId);
+      if (run?.agent) {
+        this.db.updateRunAgent(runId, {
+          ...run.agent,
+          model: event.model ?? run.agent.model,
+          reasoning: event.reasoning ?? run.agent.reasoning,
+        });
+      }
+    }
     const redact = this.secrets.redactor();
     const safe = redactDeep(event, redact);
     const seq = (this.seqs.get(runId) ?? 0) + 1;

@@ -25,9 +25,21 @@ export interface ApprovalRequest {
   fields: Record<string, unknown>;
 }
 
+/**
+ * Snapshot of what actually ran: adapter id plus the model / reasoning effort
+ * in effect (from the button if declared, else the agent's native config).
+ * Display-only; omitted fields mean "unknown", never guessed.
+ */
+export interface RunAgentInfo {
+  adapter: string;
+  model?: string;
+  reasoning?: string;
+}
+
 /** Events emitted by agent adapters (normalized across agents). */
 export type AgentEvent =
   | { type: "run.started"; runId: string }
+  | { type: "agent.info"; model?: string; reasoning?: string }
   | { type: "message.delta"; text: string }
   | { type: "tool.started"; name: string; input?: unknown }
   | { type: "tool.completed"; name: string; output?: unknown }
@@ -80,4 +92,5 @@ export interface RunRecord {
   artifacts: Artifact[];
   trigger: "manual" | "schedule" | "cli";
   dryRun?: boolean;
+  agent?: RunAgentInfo;
 }

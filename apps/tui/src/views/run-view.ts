@@ -20,6 +20,11 @@ export function renderRunView(state: AppState, cols: number, rows: number): stri
     run.status === "waiting_approval" ? style.yellow : style.accent;
   lines.push(`  ${style.accentBold(run.buttonLabel)}  ${statusColor(run.status)}  ${style.dim(durationBetween(run.startedAt, run.endedAt))}${run.dryRun ? style.dim("  [dry run]") : ""}`);
   lines.push(`  ${style.dim(run.id)}`);
+  if (run.agent) {
+    const parts = [run.agent.adapter, run.agent.model, run.agent.reasoning ? `reasoning: ${run.agent.reasoning}` : null]
+      .filter((p): p is string => Boolean(p));
+    lines.push(`  ${style.dim(parts.join(" · "))}`);
+  }
   lines.push("");
 
   const pendingApprovals = state.approvalsForRun(run.id);

@@ -211,3 +211,45 @@ Full suite 38 pass, `tsc --noEmit` clean.
 
 Note: the running daemon must be restarted (`bun run daemon`) to load the updated
 adapter before the button succeeds in the app.
+
+---
+
+## Feature: show the model and reasoning effort a run actually used
+
+Per user request: display-only — no editing UI. The run detail (web + TUI) now
+shows e.g. `codex · gpt-5.6-sol · reasoning: high`.
+
+**Where the values come from (honesty rule: show only known values, never
+guess; unknown fields are simply absent).**
+- A model declared on the button wins.
+- Otherwise the agent CLI's own config is read at run start:
+  codex → `~/.codex/config.toml` top-level `model` / `model_reasoning_effort`;
+  claude-code → `~/.claude/settings.json` `model` / `effortLevel`.
+- For claude-code, the stream-json `system/init` event reports the model
+  actually serving the run; the adapter emits it as a new `agent.info` event
+  and the daemon merges it over the config snapshot (ground truth wins).
+  codex's exec --json stream carries no model info (verified empirically), so
+  its config value is the best available truth.
+
+**Changes.**
+- core: `RunRecord.agent?: RunAgentInfo { adapter, model?, reasoning? }`;
+  new `AgentEvent` variant `agent.info`.
+- daemon: `agent-info.ts` resolver (top-level TOML parse only — table keys are
+  deliberately ignored); additive `agent TEXT` column migration on `runs`;
+  run-manager snapshots at record creation and merges `agent.info` in emit.
+  Workflow runs get no agent field (no single agent to attribute).
+- adapters/claude-code: emit `agent.info` from the init message.
+- web `app.js` + TUI `run-view.ts`: one dim line under the run id; i18n key
+  `reasoning` (ko: 추론).
+
+Rejected: adding a `reasoning` field to the button schema (user chose
+display-only); parsing codex profiles/`--profile` overlays (top-level keys only,
+keep the parser trivial — a declared button model still wins).
+
+**Verified.** `tsc --noEmit` clean; 42 tests pass (4 new resolver tests: codex
+toml top-level only, claude settings, button override, missing-config →
+undefined). Live QA against a throwaway daemon: codex dry-run snapshot
+`{adapter codex, model gpt-5.6-sol, reasoning high}` (real config values);
+real claude-code run succeeded with `{model claude-fable-5[1m], reasoning
+high}`; the real claude init event was probed directly and carries
+`model: claude-fable-5[1m]`, matching the adapter's parse condition.

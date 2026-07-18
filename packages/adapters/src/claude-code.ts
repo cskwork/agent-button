@@ -112,7 +112,11 @@ function mapClaudeMessage(msg: Record<string, unknown>, toolNames: Map<string, s
   const events: AgentEvent[] = [];
   const type = msg.type as string;
 
-  if (type === "assistant" || type === "user") {
+  if (type === "system" && msg.subtype === "init" && typeof msg.model === "string") {
+    // Ground truth for the model actually serving this run (the button may say
+    // "default"); the daemon merges it into the run's agent snapshot.
+    events.push({ type: "agent.info", model: msg.model });
+  } else if (type === "assistant" || type === "user") {
     const message = msg.message as { content?: ContentBlock[] } | undefined;
     for (const block of message?.content ?? []) {
       if (block.type === "text" && block.text) {

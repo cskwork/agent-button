@@ -53,6 +53,7 @@ const I18N = {
     close: "Close",
     no_events: "(no events yet)",
     artifact: "artifact:",
+    reasoning: "reasoning",
     // builder
     edit_automation: "Edit automation",
     new_automation_title: "New automation",
@@ -163,6 +164,7 @@ const I18N = {
     close: "닫기",
     no_events: "(아직 이벤트 없음)",
     artifact: "산출물:",
+    reasoning: "추론",
     edit_automation: "자동화 편집",
     new_automation_title: "새 자동화",
     builder_hint: "작업을 한 번만 설명하면 클릭 한 번으로, 예약으로, 또는 둘 다로 실행됩니다.",
