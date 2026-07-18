@@ -253,3 +253,31 @@ undefined). Live QA against a throwaway daemon: codex dry-run snapshot
 real claude-code run succeeded with `{model claude-fable-5[1m], reasoning
 high}`; the real claude init event was probed directly and carries
 `model: claude-fable-5[1m]`, matching the adapter's parse condition.
+
+## manage-buttons repo skill
+
+**What.** New repo-local Claude Code skill `.claude/skills/manage-buttons/`
+(SKILL.md + REFERENCE.md) so an agent can add / edit / remove / validate /
+test buttons without rediscovering the system each session.
+
+**Decisions.**
+- CRUD goes through the daemon unix-socket API (`POST/DELETE /buttons`), not
+  direct file edits: the registry only reloads at boot and on API save/delete,
+  so on-disk edits are silently ignored while the daemon runs. Direct file
+  editing is documented only for the daemon-stopped case.
+- Split per skill best practice: SKILL.md (88 lines) holds the procedure and
+  gotchas; REFERENCE.md holds both schemas, all seven step types, template
+  scope, API table, and common validation errors — loaded only when needed.
+- Edit flow is `GET /buttons/<id>/raw` → modify → POST (upsert by id), to
+  start from deployed state and avoid orphaning files on id changes.
+
+Rejected: adding `abtn add/edit/rm` CLI commands (out of scope — the API and
+YAML files already cover it; the skill documents the existing surface);
+putting the full schema inline in SKILL.md (blows the ~100-line budget).
+
+**Verified.** Live round trip against the running daemon: POST test button
+(201, validated), `abtn list` shows it, dry-run prints resolved prompt, real
+fake-adapter run succeeded, raw-GET → label edit → re-POST upserted, DELETE
+removed the YAML file. Reference field names cross-checked against
+button-schema.ts / workflow-schema.ts (fixed jenkins `base_url`/`job`/`build`
+and `expect_status` array after the check).
