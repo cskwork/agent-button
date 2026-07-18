@@ -168,4 +168,12 @@ describe("daemon end to end", () => {
   test("validation errors surface as VALIDATION_FAILED", async () => {
     await expect(client.startRun("missing-button")).rejects.toThrow(/not found/i);
   });
+
+  test("artifact reveal rejects paths that are not artifacts of the run", async () => {
+    const { run } = await client.startRun("hello", { name: "Reveal" });
+    await waitForStatus(run.id, ["succeeded", "failed"]);
+    // hello records no artifacts, so any path is rejected — nothing is ever opened in tests.
+    await expect(client.revealArtifact(run.id, "/etc/passwd")).rejects.toThrow(/not an artifact/);
+    await expect(client.revealArtifact("run_missing", "/tmp/x")).rejects.toThrow(/not found/i);
+  });
 });

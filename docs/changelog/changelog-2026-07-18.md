@@ -281,3 +281,37 @@ fake-adapter run succeeded, raw-GET → label edit → re-POST upserted, DELETE
 removed the YAML file. Reference field names cross-checked against
 button-schema.ts / workflow-schema.ts (fixed jenkins `base_url`/`job`/`build`
 and `expect_status` array after the check).
+
+## Clickable artifacts — reveal in Finder from the web dashboard
+
+**What.** In the run detail panel, `산출물:`/`artifact:` paths are now links.
+Clicking one asks the daemon to reveal the file in Finder (`open -R`), since
+browsers refuse `file://` navigation from an http page — the daemon, which
+already runs locally, is the only component that can open the folder.
+
+**Decisions.**
+- New route `POST /runs/:id/reveal` with body `{path}` in the daemon (plus
+  `DaemonClient.revealArtifact`). The path must exactly match an artifact the
+  daemon itself recorded for that run; anything else is VALIDATION_FAILED.
+  This keeps the endpoint from becoming an arbitrary "open anything" surface
+  even though it is localhost/unix-socket only.
+- `revealArtifact()` lives in daemon `artifacts.ts` next to collection logic:
+  darwin uses `open -R` (select the file in its folder), other platforms fall
+  back to `xdg-open <dirname>`. Spawn uses an args array — no shell.
+- Dashboard renders links by artifact index and looks the path up from
+  `state.openRunArtifacts`, avoiding quoting/escaping issues of inlining
+  paths into onclick attributes.
+
+Rejected: `file://` anchors (blocked by browsers from http origins); making
+event-log lines inside `<pre>` clickable too (kept scope to the artifact list
+below the log); an env-configurable reveal command (speculative config).
+
+Known limit: the xterm.js web TUI (`/term.html`) still shows artifact paths
+as plain terminal text — clickability there would need OSC 8 hyperlinks from
+the TUI plus the xterm web-links addon.
+
+**Verified.** `bun test` 43 pass (new daemon e2e test: reveal rejects
+non-artifact paths and unknown runs — nothing is spawned in tests);
+`bunx tsc --noEmit` clean; throwaway e2e script ran a fake-adapter button
+with an `outputs.collect` glob, got the artifact recorded, and
+`POST /runs/:id/reveal` returned `{revealed: <path>}` while Finder opened.

@@ -2,7 +2,7 @@
 // Non-developers never see YAML here — creation/editing goes through builder.js.
 
 const $ = (id) => document.getElementById(id);
-const state = { buttons: [], runs: [], approvals: [], adapters: {}, openRun: null };
+const state = { buttons: [], runs: [], approvals: [], adapters: {}, openRun: null, openRunArtifacts: [] };
 
 async function api(path, opts) {
   const res = await fetch("/api" + path, opts && {
@@ -149,7 +149,10 @@ async function renderDetail() {
       <button class="primary" onclick="decide('${a.request.id}','approved')">${t("approve")}</button>
       <button class="danger" onclick="decide('${a.request.id}','rejected')">${t("reject")}</button>
     </div>`).join("");
-  const artifacts = (run.artifacts || []).map((a) => `<div class="sub">${t("artifact")} ${a.path}</div>`).join("");
+  // Artifact paths are clickable: the daemon reveals them in Finder (browsers cannot open file:// from http pages).
+  state.openRunArtifacts = run.artifacts || [];
+  const artifacts = state.openRunArtifacts.map((a, i) =>
+    `<div class="sub">${t("artifact")} <a href="#" class="artifact-link" title="${t("artifact_open_title")}" onclick="revealArtifact(${i});return false">${a.path}</a></div>`).join("");
   const active = ["running", "waiting_approval", "queued"].includes(run.status);
   panel.innerHTML = `
     <div style="display:flex;gap:12px;align-items:baseline">
@@ -173,6 +176,12 @@ window.decide = async (id, decision) => {
 };
 window.cancelRun = async (id) => {
   try { await api(`/runs/${id}/cancel`, { body: {} }); toast(t("cancel_requested")); refresh(); }
+  catch (err) { toast(String(err.message || err)); }
+};
+window.revealArtifact = async (idx) => {
+  const artifact = state.openRunArtifacts[idx];
+  if (!artifact || !state.openRun) return;
+  try { await api(`/runs/${state.openRun}/reveal`, { body: { path: artifact.path } }); }
   catch (err) { toast(String(err.message || err)); }
 };
 

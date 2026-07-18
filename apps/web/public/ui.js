@@ -53,6 +53,7 @@ const I18N = {
     close: "Close",
     no_events: "(no events yet)",
     artifact: "artifact:",
+    artifact_open_title: "Open in Finder",
     reasoning: "reasoning",
     // builder
     edit_automation: "Edit automation",
@@ -164,6 +165,7 @@ const I18N = {
     close: "닫기",
     no_events: "(아직 이벤트 없음)",
     artifact: "산출물:",
+    artifact_open_title: "Finder에서 열기",
     reasoning: "추론",
     edit_automation: "자동화 편집",
     new_automation_title: "새 자동화",

@@ -36,6 +36,12 @@ export function collectArtifacts(patterns: string[], runStartedAt: string): Arti
   return artifacts.filter((a) => (seen.has(a.path) ? false : (seen.add(a.path), true)));
 }
 
+/** Reveal an artifact in the OS file manager (Finder on macOS, folder elsewhere). */
+export function revealArtifact(path: string): void {
+  const cmd = process.platform === "darwin" ? ["open", "-R", path] : ["xdg-open", dirname(path)];
+  Bun.spawn(cmd, { stdout: "ignore", stderr: "ignore" });
+}
+
 /** Check success.require_artifact globs against collected artifacts. */
 export function missingRequiredArtifacts(required: string[], collected: Artifact[]): string[] {
   const missing: string[] = [];

@@ -1,5 +1,6 @@
 import { parse as parseYaml } from "yaml";
 import { AbtnError, serializeError, type RunEvent } from "@abtn/core";
+import { revealArtifact } from "./artifacts.ts";
 import type { AgentAdapter } from "@abtn/adapters";
 import type { DaemonDb } from "./db.ts";
 import type { ButtonRegistry } from "./registry.ts";
@@ -142,7 +143,7 @@ export function createApiHandler(deps: ApiDeps): (req: Request) => Promise<Respo
         return json({ runs: db.listRuns(limit) });
       }
 
-      const runMatch = /^\/runs\/([a-z0-9_]+)(\/events|\/stream|\/cancel)?$/.exec(path);
+      const runMatch = /^\/runs\/([a-z0-9_]+)(\/events|\/stream|\/cancel|\/reveal)?$/.exec(path);
       if (runMatch) {
         const runId = runMatch[1]!;
         const sub = runMatch[2];
@@ -162,6 +163,16 @@ export function createApiHandler(deps: ApiDeps): (req: Request) => Promise<Respo
         if (method === "POST" && sub === "/cancel") {
           runs.cancelRun(runId);
           return json({ cancelled: runId });
+        }
+        if (method === "POST" && sub === "/reveal") {
+          const run = db.getRun(runId);
+          if (!run) throw new AbtnError("NOT_FOUND", `Run not found: ${runId}`);
+          const body = (await req.json()) as { path?: string };
+          // Only paths the daemon itself recorded may be revealed — never arbitrary input.
+          const artifact = run.artifacts.find((a) => a.path === body.path);
+          if (!artifact) throw new AbtnError("VALIDATION_FAILED", `Path is not an artifact of run ${runId}`);
+          revealArtifact(artifact.path);
+          return json({ revealed: artifact.path });
         }
       }
 

@@ -86,6 +86,10 @@ export class DaemonClient {
     return this.request("POST", `/runs/${runId}/cancel`);
   }
 
+  revealArtifact(runId: string, path: string): Promise<{ revealed: string }> {
+    return this.request("POST", `/runs/${runId}/reveal`, { path });
+  }
+
   listApprovals(): Promise<{ approvals: PendingApprovalView[] }> {
     return this.request("GET", "/approvals");
   }
