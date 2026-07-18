@@ -1,0 +1,44 @@
+version: 1
+kind: workflow
+
+id: demo-workflow
+label: Demo Workflow
+description: Safe end-to-end demo — command, agent, approval, assertion (no side effects)
+group: Demo
+pinned: true
+shortcut: "4"
+risk: read-only
+
+inputs:
+  greeting:
+    type: string
+    default: hello
+
+steps:
+  - id: echo
+    type: command
+    executable: echo
+    args: ["{{greeting}} from the workflow engine"]
+    save_stdout_as: echoed
+
+  - id: summarize
+    type: agent
+    adapter: fake
+    prompt: |
+      Summarize this text in one line: {{echoed}}
+
+  - id: confirm
+    type: approval
+    display:
+      title: Continue the demo workflow?
+      fields:
+        - echoed
+
+  - id: check
+    type: assertion
+    require:
+      - "{{steps.echo.status == 'succeeded'}}"
+      - "{{steps.confirm.status == 'succeeded'}}"
+
+execution:
+  timeout_seconds: 300

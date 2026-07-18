@@ -1,0 +1,29 @@
+version: 1
+kind: agent-button
+
+id: hello-world
+label: Hello World
+description: Safe demo button using the built-in fake adapter (no side effects)
+group: Demo
+pinned: true
+shortcut: "1"
+
+agent:
+  adapter: fake
+
+workspace:
+  cwd: "~"
+
+prompt:
+  template: |
+    Say hello to {{name}} and confirm the control plane is wired end to end.
+
+inputs:
+  type: object
+  properties:
+    name:
+      type: string
+      default: Danny
+
+execution:
+  timeout_seconds: 60

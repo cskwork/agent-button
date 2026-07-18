@@ -1,0 +1,14 @@
+{
+  "name": "@abtn/daemon",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/main.ts",
+  "dependencies": {
+    "@abtn/core": "workspace:*",
+    "@abtn/client": "workspace:*",
+    "@abtn/adapters": "workspace:*",
+    "@abtn/process-runner": "workspace:*",
+    "@abtn/workflow-engine": "workspace:*",
+    "yaml": "^2.5.0"
+  }
+}

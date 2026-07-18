@@ -1,0 +1,129 @@
+version: 1
+kind: workflow
+
+id: deploy-current-commit-to-qa
+label: Deploy Current Commit to QA
+description: Preflight, review, approve, merge pinned SHA, trigger Jenkins, QA
+group: Deploy
+risk: high
+
+inputs:
+  target_branch:
+    type: enum
+    values: [develop, release]
+    required: true
+  jenkins_job:
+    type: enum
+    values: [app-qa-deploy, api-qa-deploy]
+    required: true
+  repo_dir:
+    type: string
+    default: "~/work/app"
+  jenkins_url:
+    type: string
+    default: "https://jenkins.example.com"
+
+steps:
+  - id: repository-preflight
+    type: command
+    executable: git
+    args: [status, "--porcelain"]
+    cwd: "{{repo_dir}}"
+    assertions:
+      stdout_empty: true
+
+  - id: capture-source-sha
+    type: command
+    executable: git
+    args: [rev-parse, HEAD]
+    cwd: "{{repo_dir}}"
+    save_stdout_as: source_sha
+
+  - id: fetch-target
+    type: command
+    executable: git
+    args: [fetch, origin, "{{target_branch}}"]
+    cwd: "{{repo_dir}}"
+
+  - id: analyze-change
+    type: agent
+    adapter: codex
+    cwd: "{{repo_dir}}"
+    prompt: |
+      Review commit {{source_sha}} before integration into {{target_branch}}.
+      Run relevant tests and report compatibility risks, migration risks,
+      test results, and whether deployment should proceed.
+    result_schema:
+      type: object
+      required: [recommendation, test_summary]
+      properties:
+        recommendation:
+          type: string
+          enum: [proceed, hold]
+        test_summary:
+          type: string
+        risks:
+          type: array
+          items: { type: string }
+    save_result_as: review
+
+  - id: approve-merge
+    type: approval
+    when: "{{steps.analyze-change.result.recommendation == 'proceed'}}"
+    display:
+      title: Approve merge and QA deployment
+      fields:
+        - source_sha
+        - target_branch
+        - review.test_summary
+
+  - id: require-approval-path
+    type: assertion
+    require:
+      - "{{steps.approve-merge.status == 'succeeded'}}"
+
+  - id: merge
+    type: command
+    executable: git
+    args: [merge, --ff-only, "{{source_sha}}"]
+    cwd: "{{repo_dir}}"
+    idempotency_key: "merge:{{source_sha}}:{{target_branch}}"
+
+  - id: trigger-jenkins
+    type: jenkins
+    base_url: "{{jenkins_url}}"
+    job: "{{jenkins_job}}"
+    credential: "secret://keychain/jenkins/qa-token"
+    parameters:
+      GIT_SHA: "{{source_sha}}"
+      ENVIRONMENT: qa
+
+  - id: wait-for-build
+    type: jenkins-wait
+    base_url: "{{jenkins_url}}"
+    build: "{{steps.trigger-jenkins.build_url}}"
+    credential: "secret://keychain/jenkins/qa-token"
+    timeout_seconds: 1800
+
+  - id: qa
+    type: agent
+    adapter: claude-code
+    prompt: |
+      Perform the QA checklist against the deployed build of {{jenkins_job}}
+      (SHA {{source_sha}}). Capture evidence and produce a structured QA report.
+    result_schema:
+      type: object
+      required: [blocking_issues]
+      properties:
+        blocking_issues: { type: number }
+        notes: { type: string }
+
+  - id: verify
+    type: assertion
+    require:
+      - "{{steps.wait-for-build.result == 'SUCCESS'}}"
+      - "{{steps.qa.result.blocking_issues == 0}}"
+
+execution:
+  timeout_seconds: 5400
+  concurrency: reject

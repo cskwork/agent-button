@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Agent Button — Automations</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0c0d10; --panel: #12141a; --line: #1c1f26;
+      --text: #e8ecf3; --muted: #9aa3b2; --accent: #6ab0ff;
+      --ok: #4ade80; --bad: #f87171; --warn: #fbbf24;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    header { display: flex; align-items: baseline; gap: 16px; padding: 22px 32px 10px; }
+    header h1 { font-size: 15px; letter-spacing: 0.08em; margin: 0; }
+    header a { color: var(--accent); text-decoration: none; font-size: 13px; }
+    #daemon { margin-left: auto; color: var(--muted); font-size: 13px; }
+    main { padding: 8px 32px 40px; max-width: 1100px; }
+    h2 { font-size: 12px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; margin: 28px 0 12px; }
+    #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+    .card b { font-size: 14px; }
+    .card .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .card .actions { margin-top: 10px; display: flex; gap: 8px; }
+    .card.add { border-style: dashed; color: var(--muted); display: flex; align-items: center; justify-content: center; cursor: pointer; min-height: 92px; }
+    .card.add:hover { color: var(--accent); border-color: var(--accent); }
+    button {
+      background: transparent; border: 1px solid var(--line); color: var(--text);
+      border-radius: 7px; padding: 4px 12px; font-size: 12px; cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); color: var(--accent); }
+    button.primary { border-color: var(--accent); color: var(--accent); }
+    button.danger { border-color: var(--bad); color: var(--bad); }
+    button.ghost { border: none; color: var(--muted); padding: 4px 6px; }
+    .run-row { display: flex; gap: 12px; align-items: center; padding: 7px 10px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+    .run-row:hover { background: var(--panel); }
+    .run-row .glyph { width: 14px; text-align: center; }
+    .run-row .label { width: 220px; }
+    .run-row .status { width: 130px; color: var(--muted); }
+    .run-row .when { color: var(--muted); }
+    .ok { color: var(--ok); } .bad { color: var(--bad); } .warn { color: var(--warn); } .accent { color: var(--accent); }
+
+    #detail {
+      position: fixed; inset: 0 0 0 auto; width: min(680px, 90vw);
+      background: var(--panel); border-left: 1px solid var(--line);
+      padding: 24px 28px; overflow-y: auto; display: none;
+    }
+    #detail.show { display: block; }
+    #detail pre {
+      background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+      padding: 14px; font: 12px/1.6 "SF Mono", Menlo, monospace;
+      white-space: pre-wrap; word-break: break-word; max-height: 60vh; overflow-y: auto;
+    }
+    .approval { border: 1px solid var(--warn); border-radius: 8px; padding: 12px 14px; margin: 12px 0; }
+    .approval table { font-size: 12px; color: var(--muted); margin: 8px 0; }
+    .approval td:first-child { padding-right: 14px; color: var(--text); }
+
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      display: none; align-items: flex-start; justify-content: center;
+      overflow-y: auto; padding: 5vh 0; z-index: 10;
+    }
+    .overlay.show { display: flex; }
+    .overlay .box {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+      width: min(720px, 92vw); padding: 22px 26px; margin-bottom: 5vh;
+    }
+    .box h3 { margin: 0 0 4px; font-size: 16px; }
+    .box .hint { color: var(--muted); font-size: 12px; margin: 0 0 14px; }
+    .field { margin: 12px 0; }
+    .field > label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+    .field input[type="text"], .field input[type="number"], .field input[type="time"],
+    .field select, .field textarea {
+      width: 100%; background: var(--bg); color: var(--text);
+      border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
+      font: 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .field textarea { min-height: 130px; font: 13px/1.6 "SF Mono", Menlo, monospace; resize: vertical; }
+    .field-row { display: flex; gap: 12px; }
+    .field-row .field { flex: 1; }
+    .q-row { display: grid; grid-template-columns: 1.4fr 0.9fr 1.2fr 0.9fr auto auto; gap: 8px; align-items: center; margin: 6px 0; }
+    .q-row input, .q-row select { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px; font-size: 12px; }
+    .q-head { display: grid; grid-template-columns: 1.4fr 0.9fr 1.2fr 0.9fr auto auto; gap: 8px; font-size: 11px; color: var(--muted); margin-top: 6px; }
+    .days { display: flex; gap: 6px; flex-wrap: wrap; }
+    .days label { border: 1px solid var(--line); border-radius: 6px; padding: 3px 9px; font-size: 12px; cursor: pointer; color: var(--muted); }
+    .days input { display: none; }
+    .days label:has(input:checked) { border-color: var(--accent); color: var(--accent); }
+    .box .footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+    .box .footer .err { color: var(--bad); font-size: 12px; margin-right: auto; white-space: pre-wrap; align-self: center; }
+    #editor textarea {
+      width: 100%; height: 46vh; background: var(--bg); color: var(--text);
+      border: 1px solid var(--line); border-radius: 8px; padding: 12px;
+      font: 12px/1.6 "SF Mono", Menlo, monospace; resize: vertical;
+    }
+    #toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+      padding: 8px 18px; font-size: 13px; display: none; z-index: 20;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>AUTOMATIONS</h1>
+    <a href="/term.html">open web TUI</a>
+    <span id="daemon">connecting…</span>
+  </header>
+  <main>
+    <div id="grid"></div>
+    <h2>Recent runs</h2>
+    <div id="runs"></div>
+  </main>
+
+  <aside id="detail"></aside>
+  <div id="toast"></div>
+
+  <!-- Form-based builder (non-developer path) -->
+  <div id="builder" class="overlay"><div class="box" id="builder-box"></div></div>
+
+  <!-- Run-time questions -->
+  <div id="runmodal" class="overlay"><div class="box" id="runmodal-box"></div></div>
+
+  <!-- Advanced editor (developers only, hidden behind a toggle) -->
+  <div id="editor" class="overlay">
+    <div class="box">
+      <h3 id="editor-title">Advanced editor</h3>
+      <p class="hint">Raw definition (YAML or JSON). Saved to <code>~/.agent-button/buttons/&lt;id&gt;.yaml</code>.</p>
+      <textarea id="editor-text" spellcheck="false"></textarea>
+      <div class="footer">
+        <span class="err" id="editor-err"></span>
+        <button onclick="closeEditor()">Cancel</button>
+        <button class="primary" onclick="saveButtonYaml()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+  <script src="/builder.js"></script>
+</body>
+</html>

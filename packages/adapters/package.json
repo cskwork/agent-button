@@ -1,0 +1,10 @@
+{
+  "name": "@abtn/adapters",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@abtn/core": "workspace:*",
+    "@abtn/process-runner": "workspace:*"
+  }
+}

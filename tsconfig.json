@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "types": ["bun", "node"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "paths": {
+      "@abtn/core": ["./packages/core/src/index.ts"],
+      "@abtn/core/*": ["./packages/core/src/*"],
+      "@abtn/process-runner": ["./packages/process-runner/src/index.ts"],
+      "@abtn/adapters": ["./packages/adapters/src/index.ts"],
+      "@abtn/workflow-engine": ["./packages/workflow-engine/src/index.ts"]
+    }
+  },
+  "include": ["apps/**/*.ts", "packages/**/*.ts"]
+}

@@ -1,0 +1,124 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "agent-button",
+      "devDependencies": {
+        "@types/bun": "^1.3.14",
+        "@types/node": "^22.0.0",
+        "typescript": "^5.6.0",
+      },
+    },
+    "apps/cli": {
+      "name": "@abtn/cli",
+      "version": "0.1.0",
+      "bin": {
+        "abtn": "src/main.ts",
+      },
+      "dependencies": {
+        "@abtn/client": "workspace:*",
+        "@abtn/core": "workspace:*",
+      },
+    },
+    "apps/daemon": {
+      "name": "@abtn/daemon",
+      "version": "0.1.0",
+      "dependencies": {
+        "@abtn/adapters": "workspace:*",
+        "@abtn/client": "workspace:*",
+        "@abtn/core": "workspace:*",
+        "@abtn/process-runner": "workspace:*",
+        "@abtn/workflow-engine": "workspace:*",
+        "yaml": "^2.5.0",
+      },
+    },
+    "apps/tui": {
+      "name": "@abtn/tui",
+      "version": "0.1.0",
+      "dependencies": {
+        "@abtn/client": "workspace:*",
+        "@abtn/core": "workspace:*",
+        "yaml": "^2.5.0",
+      },
+    },
+    "apps/web": {
+      "name": "@abtn/web",
+      "version": "0.1.0",
+      "dependencies": {
+        "@abtn/core": "workspace:*",
+      },
+    },
+    "packages/adapters": {
+      "name": "@abtn/adapters",
+      "version": "0.1.0",
+      "dependencies": {
+        "@abtn/core": "workspace:*",
+        "@abtn/process-runner": "workspace:*",
+      },
+    },
+    "packages/client": {
+      "name": "@abtn/client",
+      "version": "0.1.0",
+      "dependencies": {
+        "@abtn/core": "workspace:*",
+      },
+    },
+    "packages/core": {
+      "name": "@abtn/core",
+      "version": "0.1.0",
+      "dependencies": {
+        "zod": "3.23.8",
+      },
+    },
+    "packages/process-runner": {
+      "name": "@abtn/process-runner",
+      "version": "0.1.0",
+      "dependencies": {
+        "@abtn/core": "workspace:*",
+      },
+    },
+    "packages/workflow-engine": {
+      "name": "@abtn/workflow-engine",
+      "version": "0.1.0",
+      "dependencies": {
+        "@abtn/adapters": "workspace:*",
+        "@abtn/core": "workspace:*",
+        "@abtn/process-runner": "workspace:*",
+      },
+    },
+  },
+  "packages": {
+    "@abtn/adapters": ["@abtn/adapters@workspace:packages/adapters"],
+
+    "@abtn/cli": ["@abtn/cli@workspace:apps/cli"],
+
+    "@abtn/client": ["@abtn/client@workspace:packages/client"],
+
+    "@abtn/core": ["@abtn/core@workspace:packages/core"],
+
+    "@abtn/daemon": ["@abtn/daemon@workspace:apps/daemon"],
+
+    "@abtn/process-runner": ["@abtn/process-runner@workspace:packages/process-runner"],
+
+    "@abtn/tui": ["@abtn/tui@workspace:apps/tui"],
+
+    "@abtn/web": ["@abtn/web@workspace:apps/web"],
+
+    "@abtn/workflow-engine": ["@abtn/workflow-engine@workspace:packages/workflow-engine"],
+
+    "@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
+
+    "@types/node": ["@types/node@22.20.1", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-EANqOCF9QFyra+4pfxUcX9STKJpCLjMbObVzljIJomAWSnuSIEAvyzEU53GaajbXJEgdh0iEcPL+DGvpUd4k1Q=="],
+
+    "bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
+
+    "typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
+    "undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
+
+    "yaml": ["yaml@2.9.0", "", { "bin": { "yaml": "bin.mjs" } }, "sha512-2AvhNX3mb8zd6Zy7INTtSpl1F15HW6Wnqj0srWlkKLcpYl/gMIMJiyuGq2KeI2YFxUPjdlB+3Lc10seMLtL4cA=="],
+
+    "zod": ["zod@3.23.8", "", {}, "sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g=="],
+  }
+}

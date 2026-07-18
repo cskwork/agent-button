@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Agent Button — Local-first agent automation control plane</title>
+<meta name="description" content="One click to start; explicit evidence before declaring success; explicit approval before consequential side effects. Buttons, workflows, schedules, and approvals for Claude Code, Codex, OpenCode, and Pi." />
+<meta property="og:title" content="Agent Button" />
+<meta property="og:description" content="Local-first agent automation control plane — buttons, workflows, schedules, and approvals for coding agents." />
+<meta property="og:type" content="website" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230c0d10'/><rect x='24' y='24' width='52' height='52' rx='12' fill='none' stroke='%236ab0ff' stroke-width='7'/></svg>" />
+<style>
+  :root {
+    --bg: #0a0b0e; --bg2: #101217; --panel: #12141a; --line: #1e222b;
+    --line2: #2a2f3a; --text: #eef1f6; --muted: #99a2b2; --faint: #6b7280;
+    --accent: #6ab0ff; --accent-dim: #2b3a54;
+    --ok: #4ade80; --bad: #f87171; --warn: #fbbf24;
+    --maxw: 1080px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background-image: radial-gradient(1100px 500px at 70% -10%, rgba(106,176,255,0.10), transparent 60%);
+  }
+  a { color: var(--accent); text-decoration: none; }
+  code, pre, .mono { font-family: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace; }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+  .eyebrow { font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+
+  /* nav */
+  nav {
+    position: sticky; top: 0; z-index: 50; backdrop-filter: blur(12px);
+    background: rgba(10,11,14,0.72); border-bottom: 1px solid var(--line);
+  }
+  nav .wrap { display: flex; align-items: center; gap: 22px; height: 60px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 650; letter-spacing: 0.02em; }
+  .brand .glyph { width: 22px; height: 22px; border: 2.5px solid var(--accent); border-radius: 6px; }
+  nav .links { margin-left: auto; display: flex; gap: 22px; align-items: center; font-size: 14px; }
+  nav .links a { color: var(--muted); }
+  nav .links a:hover { color: var(--text); }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; border-radius: 9px;
+    padding: 9px 16px; font-size: 14px; font-weight: 550; border: 1px solid var(--line2);
+    color: var(--text); transition: border-color .15s, background .15s, transform .05s;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary { background: var(--accent); color: #06254a; border-color: var(--accent); font-weight: 650; }
+  .btn.primary:hover { background: #86c0ff; }
+
+  /* hero */
+  header.hero { padding: 84px 0 40px; text-align: center; }
+  h1 { font-size: clamp(34px, 6vw, 60px); line-height: 1.05; letter-spacing: -0.02em; margin: 18px 0 0; font-weight: 700; }
+  h1 .grad { background: linear-gradient(100deg, #eef1f6 20%, var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .sub { max-width: 640px; margin: 20px auto 0; color: var(--muted); font-size: clamp(16px, 2.4vw, 19px); }
+  .principle {
+    max-width: 620px; margin: 26px auto 0; padding: 14px 20px; font-size: 15px;
+    border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 10px;
+    background: var(--bg2); color: var(--text); text-align: left;
+  }
+  .cta { display: flex; gap: 12px; justify-content: center; margin-top: 30px; flex-wrap: wrap; }
+  .badges { display: flex; gap: 8px; justify-content: center; margin-top: 22px; flex-wrap: wrap; }
+  .badge { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; }
+  .badge b { color: var(--text); font-weight: 600; }
+
+  /* terminal mockup */
+  .terminal {
+    max-width: 860px; margin: 48px auto 0; text-align: left;
+    border: 1px solid var(--line2); border-radius: 14px; overflow: hidden;
+    background: #0b0c10; box-shadow: 0 30px 80px -30px rgba(0,0,0,0.8), 0 0 0 1px rgba(106,176,255,0.05);
+  }
+  .terminal .bar { display: flex; align-items: center; gap: 8px; padding: 11px 15px; border-bottom: 1px solid var(--line); background: var(--bg2); }
+  .terminal .bar i { width: 11px; height: 11px; border-radius: 50%; background: #33373f; display: inline-block; }
+  .terminal .bar i:nth-child(1){ background:#ff5f57;} .terminal .bar i:nth-child(2){ background:#febc2e;} .terminal .bar i:nth-child(3){ background:#28c840;}
+  .terminal .bar .t { margin-left: 10px; font-size: 12px; color: var(--faint); font-family: monospace; }
+  .terminal .screen { padding: 20px 22px 22px; font-family: "SF Mono", Menlo, monospace; font-size: 13px; line-height: 1.7; }
+  .term-head { display: flex; justify-content: space-between; color: var(--accent); font-weight: 600; letter-spacing: 0.06em; }
+  .term-head .r { color: var(--faint); font-weight: 400; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0 6px; }
+  .tcard { border: 1px solid var(--line); border-radius: 9px; padding: 11px 12px; background: #0e1015; }
+  .tcard.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .tcard b { color: var(--text); display: block; font-size: 12.5px; }
+  .tcard span { color: var(--faint); font-size: 11.5px; }
+  .runs { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .runs .lbl { color: var(--muted); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .run { display: flex; gap: 12px; margin-top: 8px; color: var(--muted); }
+  .run .g.ok { color: var(--ok); } .run .g.run { color: var(--accent); } .run .g.warn { color: var(--warn); }
+  .run .nm { color: var(--text); width: 150px; } .run .st { width: 110px; } .run .ar { color: var(--faint); }
+
+  /* sections */
+  section { padding: 72px 0; border-top: 1px solid var(--line); }
+  .sec-head { text-align: center; max-width: 640px; margin: 0 auto 44px; }
+  .sec-head h2 { font-size: clamp(26px, 4vw, 36px); letter-spacing: -0.01em; margin: 12px 0 0; }
+  .sec-head p { color: var(--muted); margin: 14px 0 0; }
+
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .kind {
+    border: 1px solid var(--line); border-radius: 14px; padding: 26px; background: var(--panel);
+  }
+  .kind h3 { margin: 0; font-size: 20px; display: flex; align-items: center; gap: 10px; }
+  .kind .tag { font-size: 11px; color: var(--accent); border: 1px solid var(--accent-dim); border-radius: 999px; padding: 2px 9px; }
+  .kind p { color: var(--muted); font-size: 15px; }
+  .kind ul { margin: 14px 0 0; padding: 0; list-style: none; }
+  .kind li { padding: 7px 0 7px 22px; position: relative; color: var(--text); font-size: 14.5px; border-top: 1px solid var(--line); }
+  .kind li:before { content: "→"; position: absolute; left: 0; color: var(--accent); }
+
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .feat { border: 1px solid var(--line); border-radius: 13px; padding: 22px; background: var(--panel); transition: border-color .15s, transform .15s; }
+  .feat:hover { border-color: var(--line2); transform: translateY(-2px); }
+  .feat .ic { width: 30px; height: 30px; border-radius: 8px; border: 1.5px solid var(--accent); display: grid; place-items: center; color: var(--accent); font-size: 15px; margin-bottom: 14px; }
+  .feat h4 { margin: 0 0 6px; font-size: 16px; }
+  .feat p { margin: 0; color: var(--muted); font-size: 14px; }
+
+  /* safety table */
+  .risk { border: 1px solid var(--line); border-radius: 13px; overflow: hidden; background: var(--panel); }
+  .risk .row { display: grid; grid-template-columns: 1.1fr 1.6fr 1.3fr; gap: 0; }
+  .risk .row + .row { border-top: 1px solid var(--line); }
+  .risk .row.h { background: var(--bg2); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .risk .c { padding: 14px 18px; font-size: 14px; }
+  .risk .c b { font-weight: 600; }
+  .risk .lvl-ro b { color: var(--ok); } .risk .lvl-lw b { color: var(--accent); }
+  .risk .lvl-ew b { color: var(--warn); } .risk .lvl-hi b { color: var(--bad); }
+
+  /* architecture */
+  .arch { border: 1px solid var(--line); border-radius: 13px; padding: 22px; background: #0b0c10; font-family: "SF Mono", Menlo, monospace; font-size: 13px; line-height: 1.7; color: var(--muted); overflow-x: auto; }
+  .arch .tier { border: 1px dashed var(--line2); border-radius: 10px; padding: 12px 16px; margin: 10px 0; }
+  .arch .tier b { color: var(--accent); }
+  .arch .conn { text-align: center; color: var(--faint); }
+
+  .adapters { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .adp { border: 1px solid var(--line); border-radius: 10px; padding: 12px 18px; background: var(--panel); font-size: 14px; }
+  .adp b { color: var(--text); } .adp span { color: var(--faint); font-family: monospace; font-size: 12px; }
+
+  pre.code {
+    border: 1px solid var(--line2); border-radius: 13px; padding: 22px; background: #0b0c10;
+    overflow-x: auto; font-size: 13.5px; line-height: 1.8; max-width: 620px; margin: 0 auto;
+  }
+  pre.code .c { color: var(--faint); } pre.code .k { color: var(--accent); }
+
+  footer { border-top: 1px solid var(--line); padding: 40px 0 60px; color: var(--muted); font-size: 14px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; }
+  footer .links { display: flex; gap: 20px; }
+
+  .reveal { opacity: 0; transform: translateY(16px); transition: opacity .6s ease, transform .6s ease; }
+  .reveal.in { opacity: 1; transform: none; }
+
+  @media (max-width: 760px) {
+    .split, .grid3, .cards { grid-template-columns: 1fr; }
+    .risk .row { grid-template-columns: 1fr; }
+    .risk .c { padding: 10px 16px; }
+    nav .links a.hidemob { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="brand"><span class="glyph"></span> Agent Button</div>
+    <div class="links">
+      <a href="#buttons" class="hidemob">Buttons</a>
+      <a href="#features" class="hidemob">Features</a>
+      <a href="#safety" class="hidemob">Safety</a>
+      <a href="#start">Quick start</a>
+      <a class="btn" href="https://github.com/cskwork/agent-button">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Local-first · Open source · MIT</div>
+    <h1>The control plane for<br><span class="grad">your coding agents</span></h1>
+    <p class="sub">
+      Turn Claude Code, Codex, OpenCode, and Pi into one-click automations.
+      Agent Button owns the buttons, workflows, schedules, approvals, and evidence —
+      the agents keep their own judgment, tools, and subscriptions.
+    </p>
+    <div class="principle">
+      <b>One click to start.</b> Explicit evidence before declaring success.
+      Explicit approval before consequential side effects.
+    </div>
+    <div class="cta">
+      <a class="btn primary" href="#start">Get started →</a>
+      <a class="btn" href="https://github.com/cskwork/agent-button">★ Star on GitHub</a>
+    </div>
+    <div class="badges">
+      <span class="badge"><b>Bun</b> + TypeScript</span>
+      <span class="badge"><b>TUI</b>, web &amp; CLI</span>
+      <span class="badge"><b>SQLite</b> — no cloud</span>
+      <span class="badge"><b>36</b> tests passing</span>
+    </div>
+
+    <div class="terminal">
+      <div class="bar"><i></i><i></i><i></i><span class="t">agent-button · dashboard</span></div>
+      <div class="screen">
+        <div class="term-head"><span>AUTOMATIONS</span><span class="r">⌘K  Search</span></div>
+        <div class="cards">
+          <div class="tcard sel"><b>[1] Weekly Report</b><span>Claude · Ready</span></div>
+          <div class="tcard"><b>[2] Write Blog</b><span>Codex · Ready</span></div>
+          <div class="tcard"><b>[3] Review PR</b><span>OpenCode · Ready</span></div>
+          <div class="tcard"><b>[4] Deploy QA</b><span>workflow · high</span></div>
+          <div class="tcard"><b>[5] Jira Summary</b><span>Pi · Ready</span></div>
+          <div class="tcard"><b>[+] New automation</b><span>form-based</span></div>
+        </div>
+        <div class="runs">
+          <div class="lbl">Recent runs</div>
+          <div class="run"><span class="g ok">✓</span><span class="nm">Weekly Report</span><span class="st">4m ago</span><span class="ar">report-2026-W29.docx</span></div>
+          <div class="run"><span class="g run">●</span><span class="nm">Deploy QA</span><span class="st">Running</span><span class="ar">Jenkins #1842</span></div>
+          <div class="run"><span class="g warn">◐</span><span class="nm">Deploy QA</span><span class="st">Needs approval</span><span class="ar">pin 018dc9f · 14 files</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="buttons">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Two kinds of button</div>
+      <h2>A prompt, or a whole pipeline</h2>
+      <p>Deterministic operations stay deterministic. An agent should never decide on its own whether the right branch merged or whether production deploy is authorized.</p>
+    </div>
+    <div class="split">
+      <div class="kind reveal">
+        <h3>Agent button <span class="tag">one prompt</span></h3>
+        <p>Runs a single principal agent prompt with inputs, permissions, a timeout, and success criteria.</p>
+        <ul>
+          <li>Research a topic and write a cited blog post</li>
+          <li>Read Jira activity and prepare a weekly report</li>
+          <li>Review the current pull request</li>
+          <li>Turn a folder of notes into a PowerPoint</li>
+        </ul>
+      </div>
+      <div class="kind reveal">
+        <h3>Workflow button <span class="tag">deterministic + agent</span></h3>
+        <p>Combines commands, agent steps, approvals, waits, and validation with pinned variables.</p>
+        <ul>
+          <li>Validate repo → merge pinned SHA → trigger Jenkins → wait → QA</li>
+          <li>Retrieve Jira → summarize → generate DOCX → upload</li>
+          <li>Research → outline → approve → write → export</li>
+          <li>Every step's evidence recorded to an audit log</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">What it owns</div>
+      <h2>Small, deterministic, in your control</h2>
+      <p>The daemon compiles a button into an execution plan, starts the agent, streams events, enforces boundaries, records evidence, and stops the process tree when needed.</p>
+    </div>
+    <div class="grid3">
+      <div class="feat reveal"><div class="ic">▤</div><h4>No-code builder</h4><p>Fill in a name, plain-language instructions, questions to ask, and a schedule. YAML lives behind an Advanced toggle for developers.</p></div>
+      <div class="feat reveal"><div class="ic">⧉</div><h4>Native agent config</h4><p>Adapters normalize orchestration and events, not features. Each agent keeps its skills, MCP servers, plugins, and subscription login.</p></div>
+      <div class="feat reveal"><div class="ic">◷</div><h4>Schedules that survive restarts</h4><p>Cron with timezones, overlap and missed-run policies. A SQLite lease guarantees no double-fires across ticks or reboots.</p></div>
+      <div class="feat reveal"><div class="ic">✋</div><h4>Approvals after preflight</h4><p>The approval screen shows resolved facts — pinned SHA, files changed, tests passed — not intentions.</p></div>
+      <div class="feat reveal"><div class="ic">◈</div><h4>Evidence, not vibes</h4><p>Success requires artifacts on disk, exit codes, Jenkins status, and QA checks — never the agent's word that it worked.</p></div>
+      <div class="feat reveal"><div class="ic">⌦</div><h4>Clean cancellation</h4><p>Every run gets its own process group. Cancel kills the whole tree, so no orphaned agent or MCP subprocesses remain.</p></div>
+      <div class="feat reveal"><div class="ic">⌨</div><h4>TUI, web &amp; CLI</h4><p>An Apple-quiet terminal dashboard, a browser dashboard, a web TUI over a pty, and <code>abtn</code> on the command line — one daemon behind them.</p></div>
+      <div class="feat reveal"><div class="ic">⛭</div><h4>Secret references</h4><p><code>secret://keychain/…</code> resolves only at the integration boundary. Tokens never touch prompts, transcripts, or the database.</p></div>
+      <div class="feat reveal"><div class="ic">◱</div><h4>Dry run everything</h4><p>Compile and preview every step's resolved plan without a single side effect. Then run it for real.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="safety">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Safety model</div>
+      <h2>Four risk levels, enforced by default</h2>
+    </div>
+    <div class="risk reveal">
+      <div class="row h"><div class="c">Level</div><div class="c">Examples</div><div class="c">Default behavior</div></div>
+      <div class="row lvl-ro"><div class="c"><b>Read-only</b></div><div class="c">Research, inspect Jira, summarize code</div><div class="c">Run immediately</div></div>
+      <div class="row lvl-lw"><div class="c"><b>Local write</b></div><div class="c">Generate files, edit source, create branch</div><div class="c">Artifacts audited</div></div>
+      <div class="row lvl-ew"><div class="c"><b>External write</b></div><div class="c">Update Jira, publish, send email</div><div class="c">Confirmation</div></div>
+      <div class="row lvl-hi"><div class="c"><b>Destructive / prod</b></div><div class="c">Merge, deploy, delete infrastructure</div><div class="c">Preflight + explicit approval</div></div>
+    </div>
+    <p style="text-align:center;color:var(--muted);margin-top:20px;font-size:14px">
+      Commands run with <code>shell:false</code> and argument arrays — no raw interpolation, ever.
+      Read the full <a href="https://github.com/cskwork/agent-button/blob/main/docs/security-model.md">security model</a>.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Architecture</div>
+      <h2>One local daemon, thin clients</h2>
+      <p>UI logic stays separate from execution logic, so a desktop client can be added without rebuilding the workflow system.</p>
+    </div>
+    <div class="arch reveal">
+      <div class="tier"><b>Clients</b> — TUI (OpenTUI-ready) · Web dashboard + web TUI · CLI (<span>abtn</span>) · Tauri, later</div>
+      <div class="conn">│ &nbsp; unix socket · HTTP + SSE</div>
+      <div class="tier"><b>Local control daemon</b> — button registry · run queue · workflow engine · scheduler · approvals · secret broker · audit log</div>
+      <div class="conn">│</div>
+      <div class="tier"><b>Isolated runner</b> — deterministic steps (command / http / git / jenkins) · agent processes · MCP processes</div>
+    </div>
+    <div style="margin-top:26px" class="adapters reveal">
+      <div class="adp"><b>Claude Code</b> <span>stream-json</span></div>
+      <div class="adp"><b>Codex</b> <span>exec --json</span></div>
+      <div class="adp"><b>OpenCode</b> <span>run</span></div>
+      <div class="adp"><b>Pi</b> <span>--print</span></div>
+      <div class="adp"><b>Generic CLI</b> <span>plug in any</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="start">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Quick start</div>
+      <h2>Running in under a minute</h2>
+      <p>Requires <a href="https://bun.sh">Bun</a>. First boot seeds example buttons so the dashboard isn't empty.</p>
+    </div>
+    <pre class="code reveal"><span class="c"># clone &amp; install</span>
+git clone https://github.com/cskwork/agent-button
+cd agent-button && bun install
+
+<span class="c"># the local control daemon (unix socket, SQLite, scheduler)</span>
+bun run <span class="k">daemon</span>
+
+<span class="c"># pick a surface</span>
+bun run <span class="k">web</span>     <span class="c"># http://127.0.0.1:4173 — dashboard + web TUI</span>
+bun run <span class="k">tui</span>     <span class="c"># terminal dashboard</span>
+bun run <span class="k">cli</span> list <span class="c"># abtn list / run / logs / approve</span></pre>
+    <div class="cta" style="margin-top:34px">
+      <a class="btn primary" href="https://github.com/cskwork/agent-button">View on GitHub →</a>
+      <a class="btn" href="https://github.com/cskwork/agent-button/blob/main/docs/workflow-format.md">Workflow format</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="brand"><span class="glyph"></span> Agent Button · MIT License</div>
+    <div class="links">
+      <a href="https://github.com/cskwork/agent-button">GitHub</a>
+      <a href="https://github.com/cskwork/agent-button/blob/main/docs/security-model.md">Security</a>
+      <a href="https://github.com/cskwork/agent-button/blob/main/docs/adapter-contract.md">Adapters</a>
+      <a href="https://github.com/cskwork/agent-button/blob/main/README.md">Docs</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
+  }, { threshold: 0.12 });
+  document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+</script>
+</body>
+</html>

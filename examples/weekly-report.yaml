@@ -1,0 +1,70 @@
+version: 1
+kind: agent-button
+
+id: weekly-report
+label: Weekly Report
+description: Create my weekly engineering report from Jira activity
+icon: calendar
+group: Office
+pinned: true
+shortcut: "2"
+
+agent:
+  adapter: claude-code
+  profile: default
+  model: default
+  inherit_native_config: true
+
+workspace:
+  cwd: "~/work"
+  isolation: host-process
+
+prompt:
+  template: |
+    Prepare my weekly report for {{report_week}}.
+
+    Retrieve my Jira work using ACLI (`acli jira`). Include completed work,
+    active work, blockers, important decisions, and next week's plan.
+
+    Generate both files under ~/Documents/Weekly Reports/:
+    1. weekly-report-{{report_week}}.docx
+    2. weekly-report-{{report_week}}.md
+
+inputs:
+  type: object
+  properties:
+    report_week:
+      type: string
+      format: iso-week
+      default: current
+
+permissions:
+  filesystem:
+    read:
+      - "~/work"
+    write:
+      - "~/Documents/Weekly Reports"
+  network:
+    allow:
+      - "*.atlassian.net"
+  external_side_effects: confirm
+
+execution:
+  timeout_seconds: 1800
+  concurrency: reject
+
+trigger:
+  type: schedule
+  cron: "0 16 * * 5"
+  timezone: Asia/Seoul
+  missed_run_policy: skip
+  overlap_policy: reject
+
+outputs:
+  collect:
+    - "~/Documents/Weekly Reports/*.docx"
+    - "~/Documents/Weekly Reports/*.md"
+
+success:
+  require_artifact:
+    - "*.docx"

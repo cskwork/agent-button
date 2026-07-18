@@ -1,0 +1,11 @@
+{
+  "name": "@abtn/tui",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/main.ts",
+  "dependencies": {
+    "@abtn/core": "workspace:*",
+    "@abtn/client": "workspace:*",
+    "yaml": "^2.5.0"
+  }
+}

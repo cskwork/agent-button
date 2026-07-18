@@ -1,0 +1,41 @@
+version: 1
+kind: agent-button
+
+id: research-blog
+label: Write Blog
+description: Research a topic and draft a cited blog post
+group: Writing
+pinned: true
+shortcut: "3"
+
+agent:
+  adapter: codex
+
+workspace:
+  cwd: "~/Documents/blog"
+
+prompt:
+  template: |
+    Research the topic "{{topic}}" using current sources.
+    Preserve citations with URLs for every claim.
+    Write a complete blog draft to blog-draft.md in the working directory,
+    with a short summary, main sections, and a references list.
+
+inputs:
+  type: object
+  properties:
+    topic:
+      type: string
+      required: true
+      description: Topic to research and write about
+
+execution:
+  timeout_seconds: 2400
+
+outputs:
+  collect:
+    - "~/Documents/blog/blog-draft.md"
+
+success:
+  require_artifact:
+    - "*.md"
