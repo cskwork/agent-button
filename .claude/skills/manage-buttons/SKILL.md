@@ -61,13 +61,15 @@ Destructive — confirm with the user unless they named the exact button.
 `DELETE /buttons/<id>` removes the YAML file and unschedules it. To let the
 user keep a copy, fetch `/raw` first.
 
-## Verify (always, after any change)
+## Verify after a change
 
 ```bash
 bun run cli list                       # button appears; stderr shows load errors
 bun run cli run <id> --dry-run         # compiles and prints the resolved plan
-bun run cli run <id> --input k=v       # real run, streams events, exit 0 = success
+bun run cli run <id> --input k=v       # only an authorized run; streams events
 ```
+
+Use the fake adapter or a side-effect-free fixture for execution checks. Creating or editing a button authorizes its definition, not an unrequested deploy, message, payment, or other configured action. Run real effects only within the user's explicit scope and retain workflow approval steps.
 
 For scheduled buttons also confirm `next: ...` appears in `list` output.
 Follow a running/finished run with `bun run cli runs` and
